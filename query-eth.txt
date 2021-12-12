@@ -1,0 +1,100 @@
+WITH traders AS (    
+    WITH averagedtrades AS (
+            WITH trades AS 
+                (WITH token AS
+                  (SELECT call_tx_hash,
+                      CASE
+                          WHEN addrs[7] = '\x0000000000000000000000000000000000000000' THEN '\xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
+                          ELSE addrs[7]
+                      END AS token_address,
+                  CASE
+                    WHEN uints[2] = '0' THEN uints[1] /* For non ETH trades */
+                    ELSE uints[2]                     /* For ETH trades */
+                  END AS comission_percent,
+  
+                  CONCAT(nft.contract_address::text, nft."tokenId") as tokenId,
+                  addrs[9] as seller,
+                  addrs[2] as buyer
+                   FROM opensea."WyvernExchange_call_atomicMatch_" am
+                   LEFT JOIN erc721."ERC721_evt_Transfer" nft ON nft.evt_tx_hash = call_tx_hash
+                   WHERE addrs[2] <> '\x16f8cf10b772d1e520fcc3fe192eff0f68098873' 
+                        AND nft."tokenId" is not NULL and addrs[5] <> '\x495f947276749ce646f68ac8c248420045cb7b5e'
+                       )
+                SELECT buyer, seller, call_tx_hash,
+                    tokenId, 
+                    evt_block_time as transaction_time,
+                    (om.price/ 10^erc.decimals) as price, ((om.price / 10^erc.decimals) * p.price) AS price_usd,
+                    ((om.price / 10^erc.decimals) * p.price * (token.comission_percent) / 10000) AS commission_usd
+                FROM opensea."WyvernExchange_evt_OrdersMatched" om
+                    INNER JOIN token ON token.call_tx_hash = om.evt_tx_hash
+                    INNER JOIN erc20.tokens erc ON token.token_address = erc.contract_address
+                    INNER JOIN prices.usd p ON p.minute = date_trunc('minute', evt_block_time)
+                    AND maker != taker
+                    AND token.token_address = p.contract_address
+                    WHERE ((om.price / 10^erc.decimals) * p.price) < 250000 ),
+                        
+                    averageprices AS (
+                            SELECT call_tx_hash as trade_tx, 
+                                avg(price_usd)/count(price_usd) as average_price,
+                                avg(commission_usd)/count(commission_usd) as average_commission
+                            from trades
+                            group by trade_tx
+                            having count(price_usd) > 1)
+                            
+                    SELECT buyer, seller, call_tx_hash,
+                        tokenId, transaction_time, 
+                        CASE
+                            WHEN ap.average_price > 0 THEN ap.average_price
+                            ELSE st.price_usd
+                        END AS averaged_price, 
+                        CASE
+                            WHEN ap.average_commission > 0 THEN ap.average_commission
+                            ELSE st.commission_usd
+                        END AS averaged_commission
+                        from trades st
+                        LEFT JOIN averageprices ap ON st.call_tx_hash = ap.trade_tx
+                    ),
+            
+            buys AS (
+                select 
+                buyer,
+                transaction_time,
+                tokenId, 
+                averaged_price as buys_usd,
+                averaged_commission as buys_commission_usd
+                from 
+                averagedtrades 
+            )    
+            select 
+                CONCAT('https://opensea.io/0', substring(bs.buyer::text from 2)) as wallet,
+                min(bs.transaction_time) as active_from,
+                max(bs.transaction_time) as last_buy_at,
+                count(*) as buys,
+                sum(buys_usd) as buys_total_usd,
+                sum(buys_commission_usd) as buys_commission_total_usd,
+                count(averaged_price) as resells,
+                sum(buys_usd) filter (where averaged_price is not null) as buys_total_of_sold_usd,
+                sum(averaged_price) as sells_total_usd,
+                (sum(averaged_price) - (sum(buys_usd) filter (where averaged_price is not null)) - sum(buys_commission_usd + averaged_commission)) as profit_usd,
+                /*((sum(averaged_price) - sum(buys_usd)) /  sum(buys_usd)) as roi,*/
+                sum(buys_commission_usd + averaged_commission) as total_commission_usd
+            from buys bs
+                left join averagedtrades st ON bs.buyer = st.seller and st.tokenId = bs.tokenId
+            group by wallet
+                HAVING sum(buys_usd) > 0 and (sum(averaged_price) - sum(buys_usd)) > 0 /* With profits only */
+                and count(st.*) > 40 and sum(averaged_price) > 30000 /* with >40 trades and >30k$ total sales */
+            order by profit_usd desc)
+            
+        select ROW_NUMBER() OVER() AS no, 
+            wallet, 
+            buys, 
+            buys_total_usd, 
+            resells,
+            buys_total_of_sold_usd,
+            sells_total_usd,
+            total_commission_usd as commission, 
+            profit_usd, 
+            profit_usd / (buys_total_of_sold_usd + buys_commission_total_usd) as roi,
+            (buys_total_usd - buys_total_of_sold_usd) as unsold_total_usd,
+            active_from, last_buy_at
+            from traders LIMIT 500

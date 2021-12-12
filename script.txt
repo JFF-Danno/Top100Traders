@@ -1,0 +1,6 @@
+Hi I'm ---- and this is NFT MVPs club.
+
+We're tracking top nft traders on the polygon network thanks to dune analytics and moralis. 
+Study the accounts and strategies of the most successful traders. 
+We've enlisted the services provided by dune analytics and moralis to bring you the top100 nft traders on opensea.
+

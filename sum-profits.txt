@@ -1,0 +1,44 @@
+select nfttx."from",sum( (  ( (mo."output_matchedFillResults"::json->'profitInRightMakerAsset')::text::numeric )/ 10^erc.decimals) * p.price ) as profit, 
+(mo."output_matchedFillResults"::json->'profitInRightMakerAsset')::text::numeric/10^18, 
+(mo."output_matchedFillResults"::json->'profitInRightMakerAsset')::text::numeric, 
+
+p.*,date_trunc('minute', evt_block_time), 
+ mo.* FROM 
+opensea_polygon_v2."ZeroExFeeWrapper_call_matchOrders" mo
+inner join erc721."ERC721_evt_Transfer" nfttx on mo.call_tx_hash =  nfttx.evt_tx_hash 
+left JOIN prices.usd p ON p.minute = date_trunc('minute', evt_block_time)
+left JOIN erc20.tokens erc ON  erc.contract_address = mo."paymentTokenAddress"
+where  p.symbol ='WETH' and nfttx."from" ='\xf35e261393f9705e10b378c6785582b2a5a71094'
+group by mo."output_matchedFillResults" where 
+order by call_block_number desc
+    limit 4
+                
+                
+                
+                
+                
+           select   nfttx."from", sum( (  ( (mo."output_matchedFillResults"::json->'profitInRightMakerAsset')::text::numeric )/ 10^erc.decimals) * p.price ) as profit
+           from opensea_polygon_v2."ZeroExFeeWrapper_call_matchOrders" mo
+                inner join erc721."ERC721_evt_Transfer" nfttx on mo.call_tx_hash = nfttx.evt_tx_hash
+                left JOIN erc20.tokens erc ON  erc.contract_address = mo."paymentTokenAddress"
+                left JOIN prices.usd p ON p.minute = date_trunc('minute', evt_block_time)
+                where  p.symbol ='WETH' 
+                group by nfttx."from"
+                limit 5;
+                
+                
+                
+                
+                
+                
+                 select   nfttx."from", nfttx."to" sum( (  ( (mo."output_matchedFillResults"::json->'profitInRightMakerAsset')::text::numeric )/ 10^erc.decimals) * p.price ) as profit
+           
+           from erc721."ERC721_evt_Transfer" nfttx 
+               inner join opensea_polygon_v2."ZeroExFeeWrapper_call_matchOrders" mob on mob.call_tx_hash = nfttxs.evt_tx_hash and nfttx."to" = mob.
+                inner join  opensea_polygon_v2."ZeroExFeeWrapper_call_matchOrders" mos on mos.call_tx_hash = nfttxs.evt_tx_hash 
+
+                left JOIN erc20.tokens erc ON  erc.contract_address = mo."paymentTokenAddress"
+                left JOIN prices.usd p ON p.minute = date_trunc('minute', evt_block_time)
+                where  p.symbol ='WETH' and nfttxs."from" ='\xf35e261393f9705e10b378c6785582b2a5a71094'
+                group by nfttx."from",nfttx."to"
+                limit 50;
