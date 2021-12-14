@@ -1,12 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import App from './polygon';
+//import App from './ethereum';
 import reportWebVitals from './reportWebVitals';
+import BrowserApp from './BrowserApp';
 
 ReactDOM.render(
   <React.StrictMode>
-    <App />
+    <BrowserApp />
   </React.StrictMode>,
   document.getElementById('root')
 );

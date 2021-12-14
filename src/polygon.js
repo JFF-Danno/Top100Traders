@@ -17,7 +17,7 @@ import sold from './images/sold.png';
 import profit from './images/Profit.png';
 import roi from './images/ROI.png';
 import genesis from './images/Genesis.png';
-import ethereum from './images/eth-fade-cs.png';
+import ethereum from './images/eth-fade.png';
 import polygon from './images/polygon.png';
 import solana from './images/solana-cs.png';
 import bnb from './images/bnb.png';
@@ -86,7 +86,7 @@ function App() {
 
   <div>
     <ul>
-      <li id='toprow' ><span id='topleft' ><span id='polygon'><img src={polygon} /></span><span id='eth'><img src={ethereum} title="Coming Soon!"/></span><span id='solana'><img title="Coming Soon!" src={solana} /></span><span id='bnb'><img title="Coming Soon!" src={bnb} /></span></span><span><img src={exportimg} /></span></li>
+      <li id='toprow' ><span id='topleft' ><span id='polygon'><img src={polygon} /></span><span id='eth'><a href="/" ><img src={ethereum} title="Ethereum"/></a></span><span id='solana'><img title="Coming Soon!" src={solana} /></span><span id='bnb'><img title="Coming Soon!" src={bnb} /></span></span><span><img src={exportimg} /></span></li>
 <li className='title row' ><span className='rank' ><div className='contentDiv'><img src={rank} /></div></span><span className='link' ><div className='contentDiv'><img src={address} /></div></span><span className='buy' ><div className='contentDiv'><img src={buys} /></div></span><span className='avgprice' ><div className='contentDiv'><img src={avgprice} /></div></span><span className='sold' ><div className='contentDiv'><img src={sold} /></div></span><span className='profit' ><div className='contentDiv'><img src={profit} /></div></span><span className='roi' ><div className='contentDiv'><img src={roi} /></div></span><span className='genesis' ><div className='contentDiv'><img src={genesis} /></div></span><span className='follow' ><div className='contentDiv'><img  src={followtitle} /></div></span></li>
     {data}
     </ul>    
